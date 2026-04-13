@@ -499,8 +499,13 @@ window.addEventListener('DOMContentLoaded', () => {
 function initSupabase(url, key) {
   sb = supabase.createClient(url, key);
   sb.auth.onAuthStateChange((event, session) => {
+    // TOKEN_REFRESHED 등은 무시 — 앱이 이미 뜬 상태에서 재호출 방지
+    if (event === 'SIGNED_OUT') { showAuth(); return; }
+    if (event !== 'SIGNED_IN' && event !== 'INITIAL_SESSION') return;
     if (session?.user) {
       currentUser = session.user;
+      // 이미 메인 앱이 표시 중이면 재로드 불필요
+      if (document.getElementById('app').classList.contains('show')) return;
       loadApp();
     } else {
       showAuth();
@@ -709,7 +714,7 @@ async function loadApp() {
   // 1) Check if user already has an org membership
   const { data: memberships } = await sb.from('org_members').select('*, organizations(*)').eq('user_id', currentUser.id);
 
-  if (memberships && memberships.length > 0) {
+  if (memberships && memberships.length > 0 && memberships[0].organizations) {
     currentOrg = memberships[0].organizations;
     await loadOrgData();
     showMainApp();
@@ -722,7 +727,7 @@ async function loadApp() {
   if (userEmail) {
     const { data: invites } = await sb.from('org_members').select('*, organizations(*)').eq('invited_email', userEmail).is('user_id', null);
 
-    if (invites && invites.length > 0) {
+    if (invites && invites.length > 0 && invites[0].organizations) {
       // Claim the invitation — link user_id and update profile
       const invite = invites[0];
       const meta = currentUser.user_metadata || {};
