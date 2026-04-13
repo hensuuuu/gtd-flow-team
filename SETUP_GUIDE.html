@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTD Flow Team - 셋업 가이드</title>
+<style>
+  :root { --bg:#0f1117; --surface:#1a1d27; --surface2:#242836; --border:#363b4e; --text:#e4e6f0; --text2:#9498ab; --text3:#6b6f82; --accent:#4d8ef7; --green:#22c55e; --yellow:#f59e0b; --red:#ef4444; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:0;}
+  .container{max-width:800px;margin:0 auto;padding:40px 24px 80px;}
+  h1{font-size:32px;font-weight:700;margin-bottom:8px;}
+  .subtitle{font-size:16px;color:var(--text2);margin-bottom:40px;}
+  .progress-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border);}
+  .progress-bar{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:4px;transition:width 0.5s;width:0%;}
+  .progress-text{font-size:13px;color:var(--text2);min-width:80px;text-align:right;}
+
+  .step{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:16px;overflow:hidden;transition:all 0.3s;}
+  .step.done{border-color:var(--green);background:rgba(34,197,94,0.04);}
+  .step.active{border-color:var(--accent);}
+  .step-header{display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;user-select:none;}
+  .step-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;background:var(--surface2);color:var(--text2);border:2px solid var(--border);transition:all 0.3s;}
+  .step.done .step-num{background:var(--green);color:#fff;border-color:var(--green);}
+  .step.active .step-num{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .step-title{font-size:15px;font-weight:600;flex:1;}
+  .step-time{font-size:11px;color:var(--text3);background:var(--surface2);padding:3px 10px;border-radius:12px;}
+  .step-check{font-size:20px;opacity:0;transition:opacity 0.3s;}
+  .step.done .step-check{opacity:1;}
+  .step-arrow{font-size:14px;color:var(--text3);transition:transform 0.3s;}
+  .step.open .step-arrow{transform:rotate(180deg);}
+
+  .step-body{display:none;padding:0 20px 20px;border-top:1px solid var(--border);}
+  .step.open .step-body{display:block;}
+
+  .step-desc{font-size:14px;color:var(--text2);margin:16px 0;line-height:1.8;}
+
+  .sub-step{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .sub-step:last-child{border-bottom:none;}
+  .sub-num{width:24px;height:24px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text3);flex-shrink:0;margin-top:2px;}
+  .sub-content{flex:1;}
+  .sub-content p{font-size:13px;color:var(--text);margin-bottom:6px;}
+  .sub-content .detail{font-size:12px;color:var(--text2);line-height:1.7;}
+
+  .screenshot{width:100%;border-radius:10px;border:1px solid var(--border);margin:12px 0;background:var(--surface2);}
+  .screenshot-placeholder{padding:40px 20px;text-align:center;border-radius:10px;border:2px dashed var(--border);margin:12px 0;color:var(--text3);font-size:12px;}
+
+  .code-box{background:#1e1e2e;border:1px solid var(--border);border-radius:10px;padding:16px;margin:12px 0;font-family:'SF Mono',Monaco,'Courier New',monospace;font-size:12px;color:#cdd6f4;overflow-x:auto;position:relative;line-height:1.6;}
+  .code-box .copy-btn{position:absolute;top:8px;right:8px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text3);font-size:11px;cursor:pointer;font-family:inherit;}
+  .code-box .copy-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .code-comment{color:#6c7086;}
+  .code-keyword{color:#cba6f7;}
+  .code-string{color:#a6e3a1;}
+  .code-url{color:#89b4fa;text-decoration:underline;}
+
+  .tip{background:rgba(77,142,247,0.08);border:1px solid rgba(77,142,247,0.2);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:12px;color:var(--accent);display:flex;gap:10px;align-items:flex-start;}
+  .tip .icon{font-size:16px;flex-shrink:0;}
+
+  .warning{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:12px;color:var(--yellow);display:flex;gap:10px;align-items:flex-start;}
+  .warning .icon{font-size:16px;flex-shrink:0;}
+
+  .done-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer;margin-top:16px;transition:all 0.2s;}
+  .done-btn:hover{background:var(--green);border-color:var(--green);color:#fff;}
+  .step.done .done-btn{background:var(--green);border-color:var(--green);color:#fff;opacity:0.7;pointer-events:none;}
+
+  .url-builder{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin:12px 0;}
+  .url-builder label{display:block;font-size:12px;color:var(--text3);margin-bottom:6px;font-weight:500;}
+  .url-builder input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;font-family:'SF Mono',Monaco,'Courier New',monospace;}
+  .url-builder input:focus{border-color:var(--accent);}
+  .url-builder input::placeholder{color:var(--text3);}
+  .url-result{margin-top:12px;display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'SF Mono',Monaco,'Courier New',monospace;font-size:12px;color:var(--green);}
+  .url-result .result-text{flex:1;word-break:break-all;}
+  .url-result .copy-result{padding:4px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(34,197,94,0.1);color:var(--green);font-size:11px;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all 0.15s;}
+  .url-result .copy-result:hover{background:var(--green);color:#fff;}
+  .url-arrow{text-align:center;color:var(--text3);font-size:14px;margin:8px 0;}
+  .url-empty{color:var(--text3);font-style:italic;}
+
+  .nav-link{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--accent);font-size:12px;text-decoration:none;transition:all 0.15s;margin:4px 2px;}
+  .nav-link:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  .final-card{background:linear-gradient(135deg,rgba(77,142,247,0.1),rgba(124,58,237,0.1));border:1px solid rgba(77,142,247,0.3);border-radius:16px;padding:32px;text-align:center;margin-top:32px;}
+  .final-card h2{font-size:22px;margin-bottom:8px;}
+  .final-card p{font-size:14px;color:var(--text2);}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🚀 GTD Flow Team 셋업 가이드</h1>
+  <p class="subtitle">비개발자도 따라할 수 있는 단계별 배포 가이드 — 총 약 20분</p>
+
+  <div class="progress-header">
+    <span style="font-size:13px;color:var(--text3)">진행률</span>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-text" id="progressText">0 / 5 완료</span>
+  </div>
+
+  <!-- ═══ STEP 1: Supabase ═══ -->
+  <div class="step active open" id="step1">
+    <div class="step-header" onclick="toggleStep(1)">
+      <div class="step-num">1</div>
+      <div class="step-title">Supabase 프로젝트 만들기</div>
+      <div class="step-time">⏱ 약 3분</div>
+      <div class="step-check">✅</div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+      <p class="step-desc">Supabase는 데이터베이스 + 로그인 + 실시간 동기화를 무료로 제공하는 서비스입니다. 기존 개인용 GTD Flow에서 이미 쓰고 있다면 같은 프로젝트를 사용해도 됩니다.</p>
+
+      <div class="sub-step">
+        <div class="sub-num">1</div>
+        <div class="sub-content">
+          <p><a href="https://supabase.com" target="_blank" class="nav-link">🔗 supabase.com</a> 접속 → 우측 상단 <strong>"Start your project"</strong> 클릭</p>
+          <div class="detail">GitHub 계정으로 로그인하면 됩니다. GitHub 계정이 없다면 먼저 github.com에서 무료 가입.</div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">2</div>
+        <div class="sub-content">
+          <p><strong>"New project"</strong> 클릭 → 아래 정보 입력:</p>
+          <div class="detail">
+            • <strong>Project name:</strong> gtd-flow (아무 이름 가능)<br>
+            • <strong>Database Password:</strong> 아무 비밀번호 입력 후 <strong>반드시 메모</strong><br>
+            • <strong>Region:</strong> Northeast Asia (Tokyo) 선택 → 한국에서 빠름<br>
+            • <strong>Plan:</strong> Free tier (무료)<br>
+            → <strong>"Create new project"</strong> 클릭
+          </div>
+          <div class="warning">
+            <span class="icon">⚠️</span>
+            <span><strong>프로젝트 이름에 밑줄(_)을 쓰지 마세요!</strong> 예: <code>gtd_flow</code> ❌ → <code>gtd-flow</code> ✅<br>밑줄이 들어가면 나중에 Google 로그인 설정에서 오류가 납니다. 반드시 하이픈(-)을 쓰세요.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">3</div>
+        <div class="sub-content">
+          <p>프로젝트 생성되면 <strong>Settings → API</strong> 메뉴로 이동</p>
+          <div class="detail">
+            여기서 2가지를 아래 칸에 바로 붙여넣으세요. 이 가이드 전체에서 자동으로 사용됩니다.
+          </div>
+
+          <div class="url-builder">
+            <label>① Supabase Project URL (Settings → API에서 복사)</label>
+            <input type="text" id="supabaseUrl" placeholder="https://abcd1234.supabase.co" oninput="updateAllUrls()">
+            <div class="url-arrow">▼ 아래 리디렉션 주소가 자동 생성됩니다</div>
+            <label>Google OAuth용 리디렉션 URI (3단계에서 사용)</label>
+            <div class="url-result">
+              <span class="result-text" id="redirectUri"><span class="url-empty">위에 URL을 붙여넣으면 여기에 자동 생성됩니다</span></span>
+              <button class="copy-result" id="copyRedirectBtn" onclick="copyRedirect()" style="display:none">복사</button>
+            </div>
+          </div>
+
+          <div class="url-builder" style="margin-top:8px;">
+            <label>② anon public key (Settings → API에서 복사)</label>
+            <input type="text" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." oninput="saveUrlInputs()">
+          </div>
+
+          <div class="tip">
+            <span class="icon">💡</span>
+            <span>기존 GTD Flow 개인용에서 이미 Supabase를 쓰고 있다면 같은 프로젝트 URL과 key를 그대로 사용하면 됩니다. 팀용 테이블은 이름이 다르니 충돌 없어요.</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="done-btn" onclick="markDone(1)">✓ 완료 — 다음 단계로</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: SQL ═══ -->
+  <div class="step" id="step2">
+    <div class="step-header" onclick="toggleStep(2)">
+      <div class="step-num">2</div>
+      <div class="step-title">데이터베이스 테이블 만들기 (SQL 실행)</div>
+      <div class="step-time">⏱ 약 2분</div>
+      <div class="step-check">✅</div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+      <p class="step-desc">"SQL"이라고 겁먹을 필요 없습니다. 미리 만들어둔 코드를 <strong>복사 → 붙여넣기 → 실행</strong>하면 끝입니다.</p>
+
+      <div class="sub-step">
+        <div class="sub-num">1</div>
+        <div class="sub-content">
+          <p>Supabase 대시보드 왼쪽 메뉴에서 <strong>"SQL Editor"</strong> 클릭 (아이콘: 터미널처럼 생긴 것)</p>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">2</div>
+        <div class="sub-content">
+          <p><strong>"New query"</strong> 버튼 클릭 → 빈 편집창이 열립니다</p>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">3</div>
+        <div class="sub-content">
+          <p>아래 파일을 열어서 <strong>전체 내용을 복사</strong>합니다:</p>
+          <div class="detail">
+            <a href="supabase-team-setup.sql" target="_blank" class="nav-link">📄 supabase-team-setup.sql 열기</a><br><br>
+            파일을 열면 코드가 보입니다. <strong>Ctrl+A</strong> (전체 선택) → <strong>Ctrl+C</strong> (복사)
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">4</div>
+        <div class="sub-content">
+          <p>Supabase SQL Editor에 <strong>Ctrl+V</strong> (붙여넣기) → 우측 하단 <strong>"Run"</strong> 버튼 클릭</p>
+          <div class="detail">
+            초록색 "Success" 메시지가 뜨면 성공!<br>
+            테이블 7개, 인덱스, 보안 정책이 모두 자동으로 만들어집니다.
+          </div>
+          <div class="warning">
+            <span class="icon">⚠️</span>
+            <span>에러가 나면? 기존에 같은 이름의 테이블이 있을 수 있습니다. "already exists" 에러는 무시해도 됩니다. 다른 에러가 나면 스크린샷 찍어서 공유해주세요.</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="done-btn" onclick="markDone(2)">✓ 완료 — 다음 단계로</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: Google OAuth ═══ -->
+  <div class="step" id="step3">
+    <div class="step-header" onclick="toggleStep(3)">
+      <div class="step-num">3</div>
+      <div class="step-title">Google 로그인 설정</div>
+      <div class="step-time">⏱ 약 7분</div>
+      <div class="step-check">✅</div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+      <p class="step-desc">팀원들이 Google 계정으로 로그인할 수 있게 설정합니다. Google Cloud Console에서 키를 발급받아 Supabase에 넣는 과정입니다.</p>
+
+      <div class="sub-step">
+        <div class="sub-num">1</div>
+        <div class="sub-content">
+          <p><strong>Google Cloud Console</strong>에 접속합니다</p>
+          <div class="detail">
+            <a href="https://console.cloud.google.com" target="_blank" class="nav-link">🔗 Google Cloud Console</a><br><br>
+            Google 계정으로 로그인 → 상단에 프로젝트 선택 드롭다운에서 <strong>"새 프로젝트"</strong> → 이름: <code>GTD Flow Team</code> → "만들기"
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">2</div>
+        <div class="sub-content">
+          <p>왼쪽 메뉴에서 <strong>"API 및 서비스" → "OAuth 동의 화면"</strong></p>
+          <div class="detail">
+            • User Type: <strong>"외부"</strong> 선택 → "만들기"<br>
+            • 앱 이름: <code>GTD Flow Team</code><br>
+            • 사용자 지원 이메일: 본인 이메일 선택<br>
+            • 개발자 연락처: 본인 이메일 입력<br>
+            • 나머지는 빈칸으로 두고 <strong>"저장 후 계속"</strong> 3번 클릭해서 끝까지 진행
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">3</div>
+        <div class="sub-content">
+          <p>왼쪽 메뉴에서 <strong>"사용자 인증 정보"</strong> → 상단 <strong>"+ 사용자 인증 정보 만들기"</strong> → <strong>"OAuth 클라이언트 ID"</strong></p>
+          <div class="detail">
+            • 애플리케이션 유형: <strong>"웹 애플리케이션"</strong><br>
+            • 이름: <code>GTD Flow Team</code><br>
+            • <strong>승인된 리디렉션 URI</strong>에 아래 주소를 복사해서 추가:<br>
+          </div>
+          <div class="url-result" style="margin:12px 0;" id="step3RedirectBox">
+            <span class="result-text" id="step3RedirectUri"><span class="url-empty">⬆ 1단계에서 Supabase URL을 입력하면 여기에 자동 생성됩니다</span></span>
+            <button class="copy-result" id="step3CopyBtn" onclick="copyRedirect()" style="display:none">복사</button>
+          </div>
+          <div class="tip">
+            <span class="icon">💡</span>
+            <span>이 주소는 1단계에서 입력한 Supabase URL 기반으로 자동 생성됩니다. 아직 입력 안 했다면 <strong>1단계로 돌아가서 URL을 입력</strong>해주세요.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">4</div>
+        <div class="sub-content">
+          <p><strong>"만들기"</strong> 클릭 → 팝업에서 <strong>Client ID</strong>와 <strong>Client Secret</strong>이 표시됩니다</p>
+          <div class="detail">
+            이 두 값을 <strong>반드시 메모</strong>하세요! (닫으면 다시 볼 수 있긴 하지만 메모해두는 게 편합니다)
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">5</div>
+        <div class="sub-content">
+          <p>Supabase 대시보드로 돌아가서 <strong>Authentication → Providers → Google</strong></p>
+          <div class="detail">
+            • <strong>Enable Google provider</strong> 토글 ON<br>
+            • <strong>Client ID:</strong> 방금 메모한 값 붙여넣기<br>
+            • <strong>Client Secret:</strong> 방금 메모한 값 붙여넣기<br>
+            • <strong>"Save"</strong> 클릭
+          </div>
+        </div>
+      </div>
+
+      <button class="done-btn" onclick="markDone(3)">✓ 완료 — 다음 단계로</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 4: Vercel ═══ -->
+  <div class="step" id="step4">
+    <div class="step-header" onclick="toggleStep(4)">
+      <div class="step-num">4</div>
+      <div class="step-title">Vercel에 배포하기</div>
+      <div class="step-time">⏱ 약 5분</div>
+      <div class="step-check">✅</div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+      <p class="step-desc">Vercel은 웹사이트를 무료로 인터넷에 올려주는 서비스입니다. 파일을 올리면 자동으로 주소(URL)가 생깁니다.</p>
+
+      <div class="sub-step">
+        <div class="sub-num">1</div>
+        <div class="sub-content">
+          <p><strong>방법 A: GitHub 연결 (추천)</strong></p>
+          <div class="detail">
+            1. <a href="https://github.com/new" target="_blank" class="nav-link">🔗 GitHub 새 저장소 만들기</a><br>
+            2. 저장소 이름: <code>gtd-flow-team</code><br>
+            3. <strong>gtd-flow-team</strong> 폴더의 3개 파일을 업로드<br>
+               &nbsp;&nbsp;→ index.html, vercel.json, manifest.json<br>
+            4. <a href="https://vercel.com/new" target="_blank" class="nav-link">🔗 Vercel</a> 접속 → "Import Git Repository" → 방금 만든 저장소 선택 → "Deploy"
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num"></div>
+        <div class="sub-content">
+          <p><strong>방법 B: 파일 직접 올리기 (더 간단)</strong></p>
+          <div class="detail">
+            1. <a href="https://vercel.com" target="_blank" class="nav-link">🔗 vercel.com</a> 접속 → GitHub으로 로그인<br>
+            2. <strong>"Add New..." → "Project"</strong><br>
+            3. 하단에 <strong>"Import Third-Party Git Repository"</strong> 대신<br>
+               &nbsp;&nbsp;→ "Or, browse to upload" 를 찾아서 <strong>gtd-flow-team 폴더</strong>를 드래그&드롭<br>
+            4. "Deploy" 클릭
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">2</div>
+        <div class="sub-content">
+          <p>배포 완료! 주소가 생성됩니다</p>
+          <div class="detail">
+            예: <code>https://gtd-flow-team.vercel.app</code><br><br>
+            이 주소를 메모하세요 — 이게 팀원들이 접속할 앱 주소입니다.
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">3</div>
+        <div class="sub-content">
+          <p><strong>확인!</strong> 3단계에서 리디렉션 URI를 이미 추가했다면 이 단계는 건너뛰세요</p>
+          <div class="detail">
+            아직 안 했다면: Google Cloud Console → 사용자 인증 정보 → OAuth 클라이언트 편집<br>
+            → <strong>"승인된 리디렉션 URI"</strong>에 아래 주소 추가:
+          </div>
+          <div class="url-result" style="margin:12px 0;" id="step4RedirectBox">
+            <span class="result-text" id="step4RedirectUri"><span class="url-empty">1단계에서 Supabase URL을 입력하면 자동 생성됩니다</span></span>
+            <button class="copy-result" id="step4CopyBtn" onclick="copyRedirect()" style="display:none">복사</button>
+          </div>
+          <div class="tip">
+            <span class="icon">💡</span>
+            <span>리디렉션 URI는 Supabase 쪽 주소입니다 (Vercel 주소가 아님). Supabase가 구글 로그인 결과를 받는 곳이에요.</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="done-btn" onclick="markDone(4)">✓ 완료 — 다음 단계로</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 5: Connect ═══ -->
+  <div class="step" id="step5">
+    <div class="step-header" onclick="toggleStep(5)">
+      <div class="step-num">5</div>
+      <div class="step-title">앱에 Supabase 연결하기</div>
+      <div class="step-time">⏱ 약 1분</div>
+      <div class="step-check">✅</div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+      <p class="step-desc">마지막 단계! 배포된 앱에 접속해서 Supabase를 연결하면 끝입니다.</p>
+
+      <div class="sub-step">
+        <div class="sub-num">1</div>
+        <div class="sub-content">
+          <p>배포된 앱 주소 (예: <code>https://gtd-flow-team.vercel.app</code>)에 접속</p>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">2</div>
+        <div class="sub-content">
+          <p>우선 <strong>"로컬 데모 체험하기"</strong>로 기능을 먼저 둘러보세요</p>
+          <div class="detail">데모 모드에서는 로그인 없이 혼자서 칸반 보드를 써볼 수 있습니다.</div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">3</div>
+        <div class="sub-content">
+          <p>Supabase 연결하려면: 우측 상단 <strong>⚙️ 버튼</strong> 클릭</p>
+          <div class="detail">
+            상단에 노란색 설정 바가 나타납니다:<br><br>
+            • <strong>Supabase URL:</strong> 1단계에서 입력한 URL (아래에 자동 표시)<br>
+            • <strong>anon public key:</strong> 1단계에서 입력한 key<br><br>
+            → <strong>"연결"</strong> 버튼 클릭
+          </div>
+          <div class="url-builder" style="margin-top:8px;">
+            <label>1단계에서 입력한 값이 자동으로 표시됩니다</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-top:4px;">
+              <span>URL: <strong id="step5Url" style="color:var(--green)">미입력</strong></span>
+              <span>Key: <strong id="step5Key" style="color:var(--green)">미입력</strong></span>
+            </div>
+          </div>
+          <div class="tip">
+            <span class="icon">💡</span>
+            <span>1단계에서 입력 안 했다면 <strong>1단계로 돌아가서 Supabase URL과 Key를 입력</strong>해주세요. 앱에서 ⚙️ 누르면 같은 값을 넣게 됩니다.</span>
+          </div>
+          <div class="detail" style="display:none">
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-step">
+        <div class="sub-num">4</div>
+        <div class="sub-content">
+          <p><strong>"Google로 시작하기"</strong> 버튼을 눌러 로그인!</p>
+          <div class="detail">
+            로그인 성공 → 워크스페이스 이름 입력 → 칸반 보드가 자동 생성됩니다.<br><br>
+            이제 팀원들에게 이 URL을 공유하면 됩니다. 팀원들도 Google 로그인 후<br>
+            초대를 받으면 같은 보드를 실시간으로 볼 수 있어요.
+          </div>
+        </div>
+      </div>
+
+      <div class="warning">
+        <span class="icon">⚠️</span>
+        <div>
+          <strong>문제가 생기면?</strong><br>
+          • "로그인 안 됨" → Google Cloud Console에서 OAuth 동의 화면이 "테스트" 상태인지 확인. 테스트 사용자에 팀원 이메일 추가 필요<br>
+          • "redirect_uri_mismatch" → 리디렉션 URI가 정확한지 확인 (오타 주의)<br>
+          • "테이블 없음" 에러 → 2단계 SQL을 다시 실행해보세요
+        </div>
+      </div>
+
+      <button class="done-btn" onclick="markDone(5)">🎉 모두 완료!</button>
+    </div>
+  </div>
+
+  <!-- ═══ Final ═══ -->
+  <div class="final-card" id="finalCard" style="display:none;">
+    <h2>🎉 셋업 완료!</h2>
+    <p>GTD Flow Team이 배포되었습니다. 팀원들에게 URL을 공유하세요.</p>
+    <div style="margin-top:20px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+      <a href="index.html" class="nav-link" style="font-size:14px;padding:10px 20px;">📋 앱 열기</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL = 5;
+let completed = new Set();
+
+// Load state
+try {
+  const saved = JSON.parse(localStorage.getItem('setup-guide-state') || '[]');
+  saved.forEach(n => { completed.add(n); document.getElementById('step'+n)?.classList.add('done'); });
+  updateProgress();
+} catch(e){}
+
+function toggleStep(n) {
+  const el = document.getElementById('step'+n);
+  el.classList.toggle('open');
+}
+
+function markDone(n) {
+  completed.add(n);
+  const el = document.getElementById('step'+n);
+  el.classList.add('done');
+  el.classList.remove('open');
+  localStorage.setItem('setup-guide-state', JSON.stringify([...completed]));
+
+  // Open next
+  const next = document.getElementById('step'+(n+1));
+  if (next && !next.classList.contains('done')) {
+    next.classList.add('active','open');
+  }
+
+  updateProgress();
+}
+
+function updateProgress() {
+  const pct = Math.round(completed.size / TOTAL * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${completed.size} / ${TOTAL} 완료`;
+
+  // Show final
+  if (completed.size >= TOTAL) {
+    document.getElementById('finalCard').style.display = 'block';
+  }
+
+  // Update active step
+  for (let i = 1; i <= TOTAL; i++) {
+    const el = document.getElementById('step'+i);
+    if (!completed.has(i)) { el.classList.add('active'); break; }
+    else { el.classList.remove('active'); }
+  }
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '복사됨!';
+    setTimeout(() => btn.textContent = '복사', 1500);
+  });
+}
+
+// ── URL auto-builder ─────────────────────────────────────
+function updateAllUrls() {
+  const urlInput = document.getElementById('supabaseUrl').value.trim().replace(/\/+$/, '');
+  saveUrlInputs();
+
+  const targets = [
+    { text: 'redirectUri', btn: 'copyRedirectBtn' },
+    { text: 'step3RedirectUri', btn: 'step3CopyBtn' },
+    { text: 'step4RedirectUri', btn: 'step4CopyBtn' },
+  ];
+
+  if (urlInput && urlInput.includes('supabase.co')) {
+    const redirectUrl = urlInput + '/auth/v1/callback';
+
+    // Check for underscore
+    const hasUnderscore = urlInput.includes('_');
+
+    targets.forEach(t => {
+      const el = document.getElementById(t.text);
+      const btn = document.getElementById(t.btn);
+      if (el) {
+        if (hasUnderscore) {
+          el.innerHTML = '<span style="color:var(--red)">⚠️ URL에 밑줄(_)이 포함되어 있습니다! Google OAuth에서 거부됩니다.<br>Supabase에서 프로젝트를 새로 만들어주세요 (이름에 하이픈(-) 사용).</span>';
+          if (btn) btn.style.display = 'none';
+        } else {
+          el.textContent = redirectUrl;
+          el.style.color = 'var(--green)';
+          if (btn) btn.style.display = 'block';
+        }
+      }
+    });
+  } else {
+    targets.forEach(t => {
+      const el = document.getElementById(t.text);
+      const btn = document.getElementById(t.btn);
+      if (el) el.innerHTML = '<span class="url-empty">위에 Supabase URL을 붙여넣으면 자동 생성됩니다</span>';
+      if (btn) btn.style.display = 'none';
+    });
+  }
+}
+
+function copyRedirect() {
+  const url = document.getElementById('supabaseUrl').value.trim().replace(/\/+$/, '');
+  if (!url) return;
+  const redirect = url + '/auth/v1/callback';
+  navigator.clipboard.writeText(redirect).then(() => {
+    document.querySelectorAll('.copy-result').forEach(btn => {
+      btn.textContent = '복사됨!';
+      setTimeout(() => btn.textContent = '복사', 1500);
+    });
+  });
+}
+
+function saveUrlInputs() {
+  const url = document.getElementById('supabaseUrl')?.value || '';
+  const key = document.getElementById('supabaseKey')?.value || '';
+  localStorage.setItem('setup-guide-inputs', JSON.stringify({ url, key }));
+  // Update step 5 display
+  const s5url = document.getElementById('step5Url');
+  const s5key = document.getElementById('step5Key');
+  if (s5url) s5url.textContent = url ? url.substring(0, 40) + '...' : '미입력';
+  if (s5key) s5key.textContent = key ? key.substring(0, 20) + '...' : '미입력';
+}
+
+// Restore saved inputs
+try {
+  const saved = JSON.parse(localStorage.getItem('setup-guide-inputs') || '{}');
+  if (saved.url) { document.getElementById('supabaseUrl').value = saved.url; updateAllUrls(); }
+  if (saved.key) document.getElementById('supabaseKey').value = saved.key;
+} catch(e) {}
+</script>
+</body>
+</html>
