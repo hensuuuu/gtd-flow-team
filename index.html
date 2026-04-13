@@ -311,6 +311,7 @@ input,textarea,select,button{font-family:inherit;}
 
     <div class="sidebar-bottom">
       <div class="sync-row" id="syncStatus"><div class="sync-dot"></div> 실시간 동기화</div>
+      <button class="invite-btn" onclick="copyInviteLink()" style="margin-bottom:8px;">🔗 초대 링크 복사</button>
       <div class="user-row" id="userRow">
         <div class="m-avatar" id="userAvatar" style="background:var(--accent)"></div>
         <span class="name" id="userName">사용자</span>
@@ -480,6 +481,14 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // ── Init ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // ?join=slug 파라미터 감지 → localStorage에 저장 후 URL 정리
+  const urlParams = new URLSearchParams(window.location.search);
+  const joinSlug = urlParams.get('join');
+  if (joinSlug) {
+    localStorage.setItem('gtd-team-pending-join', joinSlug);
+    // URL에서 ?join= 제거 (깔끔하게)
+    window.history.replaceState({}, '', window.location.pathname);
+  }
   initSupabase(SUPABASE_URL, SUPABASE_KEY);
 });
 
@@ -515,6 +524,16 @@ async function signInWithGoogle() {
     options: { redirectTo: window.location.origin + window.location.pathname }
   });
   if (error) alert('로그인 실패: ' + error.message);
+}
+
+function copyInviteLink() {
+  if (!currentOrg?.slug) return;
+  const link = `${window.location.origin}${window.location.pathname}?join=${currentOrg.slug}`;
+  navigator.clipboard.writeText(link).then(() => {
+    alert(`초대 링크가 복사됐어요 🎉\n\n${link}\n\n팀원에게 이 링크를 공유하세요!`);
+  }).catch(() => {
+    prompt('아래 링크를 복사하세요:', link);
+  });
 }
 
 async function signOut() {
@@ -691,32 +710,13 @@ async function loadApp() {
   if (isLocalMode) { showMainApp(); return; }
 
   // 1) Check if user already has an org membership
-  const { data: memberships } = await sb.from('org_members').select('*, organizations(*)').eq('user_id', currentUser.id);
+  // 조인 대신 쿼리 분리 — RLS + PostgREST 조인 null 반환 문제 방지
+  const { data: memberships } = await sb.from('org_members').select('*').eq('user_id', currentUser.id);
 
-  if (memberships && memberships.length > 0 && memberships[0].organizations) {
-    currentOrg = memberships[0].organizations;
-    await loadOrgData();
-    showMainApp();
-    subscribeRealtime();
-    return;
-  }
-
-  // 2) Check if user was invited by email (pending invitation)
-  const userEmail = currentUser.email;
-  if (userEmail) {
-    const { data: invites } = await sb.from('org_members').select('*, organizations(*)').eq('invited_email', userEmail).is('user_id', null);
-
-    if (invites && invites.length > 0 && invites[0].organizations) {
-      // Claim the invitation — link user_id and update profile
-      const invite = invites[0];
-      const meta = currentUser.user_metadata || {};
-      await sb.from('org_members').update({
-        user_id: currentUser.id,
-        display_name: meta.full_name || invite.display_name || userEmail.split('@')[0],
-        avatar_url: meta.avatar_url || null,
-      }).eq('id', invite.id);
-
-      currentOrg = invite.organizations;
+  if (memberships && memberships.length > 0) {
+    const { data: org } = await sb.from('organizations').select('*').eq('id', memberships[0].org_id).single();
+    if (org) {
+      currentOrg = org;
       await loadOrgData();
       showMainApp();
       subscribeRealtime();
@@ -724,7 +724,59 @@ async function loadApp() {
     }
   }
 
-  // 3) No membership, no invitation → show setup/join screen
+  // 2) Check if user was invited by email (pending invitation)
+  const userEmail = currentUser.email;
+  if (userEmail) {
+    const { data: invites } = await sb.from('org_members').select('*').eq('invited_email', userEmail).is('user_id', null);
+
+    if (invites && invites.length > 0) {
+      const invite = invites[0];
+      const { data: inviteOrg } = await sb.from('organizations').select('*').eq('id', invite.org_id).single();
+      if (inviteOrg) {
+        // Claim the invitation — link user_id and update profile
+        const meta = currentUser.user_metadata || {};
+        await sb.from('org_members').update({
+          user_id: currentUser.id,
+          display_name: meta.full_name || invite.display_name || userEmail.split('@')[0],
+          avatar_url: meta.avatar_url || null,
+        }).eq('id', invite.id);
+
+        currentOrg = inviteOrg;
+        await loadOrgData();
+        showMainApp();
+        subscribeRealtime();
+        return;
+      }
+    }
+  }
+
+  // 3) ?join=slug 링크로 들어온 경우 → 자동 참여
+  const pendingSlug = localStorage.getItem('gtd-team-pending-join');
+  if (pendingSlug) {
+    localStorage.removeItem('gtd-team-pending-join');
+    const { data: orgs } = await sb.from('organizations').select('*').eq('slug', pendingSlug);
+    if (orgs && orgs.length > 0) {
+      const org = orgs[0];
+      const meta = currentUser.user_metadata || {};
+      const { error: joinErr } = await sb.from('org_members').insert({
+        org_id: org.id,
+        user_id: currentUser.id,
+        role: 'member',
+        display_name: meta.full_name || currentUser.email?.split('@')[0] || '멤버',
+        avatar_url: meta.avatar_url || null,
+      });
+      if (!joinErr || joinErr.code === '23505') { // 23505 = 이미 멤버 (중복)
+        currentOrg = org;
+        await loadOrgData();
+        showMainApp();
+        subscribeRealtime();
+        return;
+      }
+    }
+    // slug를 못 찾거나 실패 시 — 그냥 setup 화면으로
+  }
+
+  // 4) No membership, no invitation → show setup/join screen
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('setupScreen').style.display = 'flex';
 }
