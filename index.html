@@ -314,7 +314,7 @@ input,textarea,select,button{font-family:inherit;}
       <button class="invite-btn" onclick="copyInviteLink()" style="margin-bottom:8px;">🔗 초대 링크 복사</button>
       <div class="user-row" id="userRow">
         <div class="m-avatar" id="userAvatar" style="background:var(--accent)"></div>
-        <span class="name" id="userName">사용자</span>
+        <span class="name" id="userName" onclick="editDisplayName()" title="클릭해서 이름 변경" style="cursor:pointer;">사용자</span>
         <button class="logout-btn" onclick="signOut()">로그아웃</button>
       </div>
     </div>
@@ -524,6 +524,47 @@ async function signInWithGoogle() {
     options: { redirectTo: window.location.origin + window.location.pathname }
   });
   if (error) alert('로그인 실패: ' + error.message);
+}
+
+async function editDisplayName() {
+  const el = document.getElementById('userName');
+  const current = el.textContent;
+  const input = document.createElement('input');
+  input.value = current;
+  input.style.cssText = 'font-size:13px;background:none;border:none;border-bottom:1px solid var(--accent);outline:none;color:var(--text);width:100px;';
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+
+  async function save() {
+    const newName = input.value.trim() || current;
+    // org_members display_name 업데이트
+    if (!isLocalMode && sb && currentOrg) {
+      await sb.from('org_members')
+        .update({ display_name: newName })
+        .eq('org_id', currentOrg.id)
+        .eq('user_id', currentUser.id);
+      // STATE 반영
+      const m = STATE.members.find(m => m.user_id === currentUser.id);
+      if (m) m.display_name = newName;
+    }
+    // UI 복원
+    const span = document.createElement('span');
+    span.className = 'name';
+    span.id = 'userName';
+    span.title = '클릭해서 이름 변경';
+    span.style.cursor = 'pointer';
+    span.onclick = editDisplayName;
+    span.textContent = newName;
+    input.replaceWith(span);
+    renderBoard();
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = current; input.blur(); }
+  });
 }
 
 function copyInviteLink() {
