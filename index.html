@@ -654,18 +654,22 @@ async function createOrg() {
   const orgSlug = slug || name.toLowerCase().replace(/\s/g,'-');
 
   if (!isLocalMode && sb) {
-    // Supabase mode — insert org (auto-trigger creates columns + owner member)
+    // 1) org 생성
     const { data, error } = await sb.from('organizations').insert({
       name, slug: orgSlug, owner_id: currentUser.id,
     }).select().single();
     if (error) return alert('생성 실패: ' + error.message);
 
-    // Update member display_name & avatar
+    // 2) owner를 org_members에 직접 insert (트리거 미동작 대비)
     const meta = currentUser.user_metadata || {};
-    await sb.from('org_members').update({
+    const { error: memberErr } = await sb.from('org_members').upsert({
+      org_id: data.id,
+      user_id: currentUser.id,
+      role: 'owner',
       display_name: meta.full_name || currentUser.email?.split('@')[0] || '나',
       avatar_url: meta.avatar_url || null,
-    }).eq('org_id', data.id).eq('user_id', currentUser.id);
+    }, { onConflict: 'org_id,user_id' });
+    if (memberErr) return alert('멤버 설정 실패: ' + memberErr.message);
 
     currentOrg = data;
     await loadOrgData();
@@ -711,10 +715,13 @@ async function loadApp() {
 
   // 1) Check if user already has an org membership
   // 조인 대신 쿼리 분리 — RLS + PostgREST 조인 null 반환 문제 방지
-  const { data: memberships } = await sb.from('org_members').select('*').eq('user_id', currentUser.id);
+  const { data: memberships, error: memErr } = await sb.from('org_members').select('*').eq('user_id', currentUser.id);
+  console.log('[loadApp] user:', currentUser?.id);
+  console.log('[loadApp] memberships:', memberships, 'error:', memErr);
 
   if (memberships && memberships.length > 0) {
-    const { data: org } = await sb.from('organizations').select('*').eq('id', memberships[0].org_id).single();
+    const { data: org, error: orgErr } = await sb.from('organizations').select('*').eq('id', memberships[0].org_id).single();
+    console.log('[loadApp] org:', org, 'error:', orgErr);
     if (org) {
       currentOrg = org;
       await loadOrgData();
