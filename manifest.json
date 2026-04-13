@@ -1,0 +1,10 @@
+{
+  "name": "GTD Flow Team",
+  "short_name": "GTD Team",
+  "description": "팀 프로젝트 칸반 보드",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#4d8ef7",
+  "icons": []
+}
