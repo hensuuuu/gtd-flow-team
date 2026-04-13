@@ -57,10 +57,6 @@ input,textarea,select,button{font-family:inherit;}
 .setup-field input:focus{border-color:var(--accent);}
 .setup-hint{font-size:11px;color:var(--text3);margin-top:4px;}
 
-/* ── Config Panel ──────────────────────────────────────── */
-.config-bar{display:none;background:rgba(245,158,11,0.1);border-bottom:1px solid rgba(245,158,11,0.3);padding:10px 24px;font-size:12px;color:var(--high);align-items:center;gap:12px;}
-.config-bar input{padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:11px;width:300px;}
-.config-bar button{padding:4px 12px;border-radius:4px;border:none;background:var(--accent);color:#fff;font-size:11px;cursor:pointer;}
 
 /* ── App Layout ────────────────────────────────────────── */
 .app{display:none;height:100vh;}
@@ -279,14 +275,6 @@ input,textarea,select,button{font-family:inherit;}
 
 <!-- ═══ Main App ═══ -->
 <div class="app" id="app">
-  <!-- Config Bar (Supabase 설정) -->
-  <div class="config-bar" id="configBar">
-    ⚙️ Supabase 연결:
-    <input type="text" id="cfgUrl" placeholder="Supabase URL (https://xxx.supabase.co)">
-    <input type="text" id="cfgKey" placeholder="anon public key">
-    <button onclick="connectSupabase()">연결</button>
-    <button onclick="document.getElementById('configBar').style.display='none'" style="background:var(--surface3)">닫기</button>
-  </div>
 
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -344,7 +332,6 @@ input,textarea,select,button{font-family:inherit;}
           <span class="icon-sun">☀️</span>
           <span class="icon-moon">🌙</span>
         </button>
-        <button class="btn" onclick="document.getElementById('configBar').style.display='flex'" title="설정">⚙️</button>
       </div>
     </div>
 
@@ -513,14 +500,6 @@ function initSupabase(url, key) {
   });
 }
 
-function connectSupabase() {
-  const url = document.getElementById('cfgUrl').value.trim();
-  const key = document.getElementById('cfgKey').value.trim();
-  if (!url || !key) return alert('URL과 Key를 입력하세요');
-  localStorage.setItem('gtd-team-supabase', JSON.stringify({url, key}));
-  initSupabase(url, key);
-  document.getElementById('configBar').style.display = 'none';
-}
 
 // ── Auth ──────────────────────────────────────────────────
 function showAuth() {
