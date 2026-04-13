@@ -682,11 +682,11 @@ async function createOrg() {
   currentOrg = { id: 'org-' + Date.now(), name, slug: orgSlug, owner_id: currentUser.id };
 
   STATE.columns = [
-    { id: 'col-1', org_id: currentOrg.id, name: 'Backlog',     color: '#6b7280', sort_order: 0, is_done_column: false },
-    { id: 'col-2', org_id: currentOrg.id, name: 'To Do',       color: '#3b82f6', sort_order: 1, is_done_column: false },
-    { id: 'col-3', org_id: currentOrg.id, name: 'In Progress', color: '#f59e0b', sort_order: 2, is_done_column: false },
-    { id: 'col-4', org_id: currentOrg.id, name: 'In Review',   color: '#a855f7', sort_order: 3, is_done_column: false },
-    { id: 'col-5', org_id: currentOrg.id, name: 'Done',        color: '#22c55e', sort_order: 4, is_done_column: true },
+    { id: 'col-1', org_id: currentOrg.id, name: '백로그',    color: '#6b7280', sort_order: 0, is_done_column: false },
+    { id: 'col-2', org_id: currentOrg.id, name: '할 일',     color: '#3b82f6', sort_order: 1, is_done_column: false },
+    { id: 'col-3', org_id: currentOrg.id, name: '진행 중',   color: '#f59e0b', sort_order: 2, is_done_column: false },
+    { id: 'col-4', org_id: currentOrg.id, name: '검토 중',   color: '#a855f7', sort_order: 3, is_done_column: false },
+    { id: 'col-5', org_id: currentOrg.id, name: '완료',      color: '#22c55e', sort_order: 4, is_done_column: true },
   ];
 
   STATE.members = [{
@@ -908,7 +908,7 @@ function renderBoard() {
     el.innerHTML = `
       <div class="col-header">
         <div class="col-color" style="background:${col.color}"></div>
-        <h3>${col.name}</h3>
+        <h3 class="col-title" onclick="startEditColName('${col.id}', this)" title="클릭해서 이름 변경" style="cursor:pointer;" >${col.name}</h3>
         <span class="col-count">${tasks.length}</span>
         ${col.wip_limit ? `<span class="col-wip ${tasks.length>=col.wip_limit?'warn':''}">WIP ${tasks.length}/${col.wip_limit}</span>` : ''}
         <button class="col-add" onclick="showAddTaskModal('${col.id}')">+</button>
@@ -1031,6 +1031,30 @@ async function addTask() {
 
   document.getElementById('taskModal').classList.remove('open');
   renderAll();
+}
+
+function startEditColName(colId, el) {
+  const col = STATE.columns.find(c => c.id === colId);
+  if (!col) return;
+  const input = document.createElement('input');
+  input.value = col.name;
+  input.style.cssText = 'font-size:13px;font-weight:600;background:none;border:none;border-bottom:1px solid var(--accent);outline:none;color:var(--text);width:100px;';
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+
+  async function save() {
+    const newName = input.value.trim() || col.name;
+    col.name = newName;
+    if (!isLocalMode && sb) await sb.from('board_columns').update({ name: newName }).eq('id', colId);
+    saveLocal();
+    renderBoard();
+  }
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = col.name; input.blur(); }
+  });
 }
 
 async function moveTask(taskId, newColId, newIndex) {
